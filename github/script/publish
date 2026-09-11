@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+set -e
+
+# Fetch tags from origin and the canonical upstream so that a fork without
+# its own github-v* tags still picks up opencode's existing release series.
+git fetch origin --tags --force
+git fetch https://github.com/anomalyco/opencode.git --tags --force
+
 # Get the latest Git tag
 latest_tag=$(git tag --sort=committerdate | grep -E '^github-v[0-9]+\.[0-9]+\.[0-9]+$' | tail -1)
 if [ -z "$latest_tag" ]; then
@@ -9,7 +16,9 @@ fi
 echo "Latest tag: $latest_tag"
 
 # Update latest tag
-git tag -d latest
-git push origin :refs/tags/latest
+if git rev-parse -q --verify refs/tags/latest >/dev/null; then
+    git tag -d latest
+fi
+git push origin :refs/tags/latest || true
 git tag -a latest $latest_tag -m "Update latest to $latest_tag"
 git push origin latest
